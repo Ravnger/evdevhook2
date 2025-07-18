@@ -114,8 +114,11 @@ namespace Evdevhook {
 					iochan = new IOChannel.unix_new(fd);
 					iochan.set_close_on_unref(true);
 				}
+				
+				
 
 				var dev = new Evdev.Device.from_fd(iochan.unix_get_fd());
+				print("Attaching device: name='%s', vid=0x%04x, pid=0x%04x\n", dev.name, dev.id_vendor, dev.id_product);
 				if (!dev.has_property(Linux.Input.INPUT_PROP_ACCELEROMETER)) {
 					warning("Device %s reported as accelerometer by udev but not evdev - ignoring", dev.name);
 					return;
@@ -123,8 +126,19 @@ namespace Evdevhook {
 
 				var conf = new Config();
 				var? devtypeconf = conf.get_device_type_config((uint16)dev.id_vendor, (uint16)dev.id_product);
+				if (devtypeconf != null) {
+  		  		print("Device type config FOUND for [%04x:%04x]\n", dev.id_vendor, dev.id_product);
+				} else {
+    				print("Device type config NOT FOUND for [%04x:%04x]\n", dev.id_vendor, dev.id_product);
+				}
+
 				var uniq = dev.uniq ?? "NULL";
 				var? devconf = conf.get_device_config(uniq);
+				if (devconf != null) {
+    				print("Device config FOUND for uniq='%s'\n", uniq);
+				} else {
+    				print("Device config NOT FOUND for uniq='%s'\n", uniq);
+				}
 
 				if (devtypeconf != null && devconf != null) {
 					for (int code = Linux.Input.ABS_X; code <= Linux.Input.ABS_Z; ++code) {
