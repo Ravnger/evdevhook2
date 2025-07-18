@@ -21,7 +21,7 @@
 namespace Evdevhook {
 	private uint64 uniq_to_mac(string? uniq) {
 		if (uniq == null) {
-			debug("Device with no uniq set");
+			debug("HELLO_FROM_EDIT Device with no uniq set");
 			return Cemuhook.MAC_UNAVAILABLE;
 		}
 
@@ -165,8 +165,17 @@ namespace Evdevhook {
 					axis_resolution[code] = dev.get_abs_resolution(code);
 				}
 			}
+			// After axis_center and axis_resolution are set, and before IOFunc cb = process_incoming;
+			for (int code = Linux.Input.ABS_X; code <= Linux.Input.ABS_RZ; ++code) {
+    			var idx = devtypeconf.axis_map[code];
+    			if (idx != -1) {
+        			print("Mapping: evdev axis %d (code=0x%02x) => DSU axis %d, invert=%s\n",
+            	code, code, idx, devtypeconf.axis_inversion[code] ? "true" : "false");
+    }
+}
 
 			IOFunc cb = process_incoming;
+			print("process_incoming called for device: %s\n", dev.name);
 			dev_iochan.add_watch(IN | HUP, cb);
 			if (new Config().use_upower) {
 				battery_reader.begin();
@@ -245,6 +254,7 @@ namespace Evdevhook {
 		}
 
 		private void process_axis(uint16 axis, int32 value_raw) {
+		print("process_axis: axis=%u, value_raw=%d\n", axis, value_raw);
 			if (axis <= Linux.Input.ABS_RZ) {
 				var idx = devtypeconf.axis_map[axis];
 				if (idx != -1) {
@@ -254,6 +264,10 @@ namespace Evdevhook {
 					}
 
 					axis_state[idx] = (float)value_fixed / axis_resolution[axis];
+					print("  axis_state[%d] = %f (after %s inversion, resolution=%d)\n",
+      				idx, axis_state[idx],
+      				devtypeconf.axis_inversion[axis] ? "" : "no",
+      				axis_resolution[axis]);
 					if (axis >= Linux.Input.ABS_RX) {
 						axis_state[idx] *= devtypeconf.gyro_sensitivity;
 					}
