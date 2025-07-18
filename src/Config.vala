@@ -125,37 +125,48 @@ namespace Evdevhook {
 			// There's no main config group in this file.
 			// This config is not meant to be modified, so we terminate on errors.
 
-			foreach (unowned string group in kfile.get_groups()) {
-				var regex = /^([[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]]):([[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]])$/;
-				MatchInfo minfo;
-				if (!regex.match(group, 0, out minfo)) {
-					throw new ConfigError.INVALID_DEVICE_TYPE_CONFIG("Unidentified device type configuration group %s", group);
-				}
+foreach (unowned string group in kfile.get_groups()) {
+    var regex = /^([[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]]):([[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]])$/;
+    MatchInfo minfo;
+    if (!regex.match(group, 0, out minfo)) {
+        throw new ConfigError.INVALID_DEVICE_TYPE_CONFIG("Unidentified device type configuration group %s", group);
+    }
 
-				var vid = (uint16)uint64.parse(minfo.fetch(1), 16);
-				var pid = (uint16)uint64.parse(minfo.fetch(2), 16);
-				var devtypeid = new DeviceTypeIdentifier(vid, pid);
-				var devtypeconf = new DeviceTypeConfig();
+    var vid = (uint16)uint64.parse(minfo.fetch(1), 16);
+    var pid = (uint16)uint64.parse(minfo.fetch(2), 16);
+    var devtypeid = new DeviceTypeIdentifier(vid, pid);
+    var devtypeconf = new DeviceTypeConfig();
 
-				foreach (unowned string key in kfile.get_keys(group)) {
-					switch(key) {
-						case "AccelMapping":
-							devtypeconf.read_orientation(kfile.get_string(group, key), Linux.Input.ABS_X);
-							break;
-						case "GyroMapping":
-							devtypeconf.read_orientation(kfile.get_string(group, key), Linux.Input.ABS_RX);
-							break;
-						case "GyroSensitivity":
-							devtypeconf.gyro_sensitivity = (float)kfile.get_double(group, key);
-							break;
-						default:
-							throw new ConfigError.INVALID_DEVICE_TYPE_CONFIG("Unknown device type configuration key %s", key);
-					}
-				}
+    foreach (unowned string key in kfile.get_keys(group)) {
+        switch(key) {
+            case "AccelMapping":
+                devtypeconf.read_orientation(kfile.get_string(group, key), Linux.Input.ABS_X);
+                break;
+            case "GyroMapping":
+                devtypeconf.read_orientation(kfile.get_string(group, key), Linux.Input.ABS_RX);
+                break;
+            case "GyroSensitivity":
+                devtypeconf.gyro_sensitivity = (float)kfile.get_double(group, key);
+                break;
+            default:
+                throw new ConfigError.INVALID_DEVICE_TYPE_CONFIG("Unknown device type configuration key %s", key);
+        }
+    }
+
+    device_type_configs[devtypeid] = devtypeconf;
+
+    // Debug logging (place here—inside the loop and the function)
+    print("Loaded DeviceTypeConfig for [%04x:%04x]\n", vid, pid);
+    foreach (unowned string key in kfile.get_keys(group)) {
+        print("  Key: %s = %s\n", key, kfile.get_string(group, key));
+    }
+
+
 
 				device_type_configs[devtypeid] = devtypeconf;
 			}
 		}
+		
 
 		public void load_device_config(string path) throws Error {
 			var kfile = new KeyFile();
